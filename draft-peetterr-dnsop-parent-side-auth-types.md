@@ -62,7 +62,7 @@ This document requests that IANA reserve such a range and defines behavior of DN
 
 # Document work
 
-This document lives [on GitHub](https://github.com/PowerDNS/draft-dnsop-parent-side-auth-types); proposed text and editorial changes are very much welcomed there, but any functional changes should always first be discussed on the IETF DNSOP WG mailing list.
+This document lives [on GitHub](https://github.com/PowerDNS/draft-dnsop-parent-side-auth-types); proposed text and editorial changes are very much welcomed there, but any functional changes should always first be discussed on the IETF DELEG WG mailing list.
 
 # Conventions and Definitions {#term}
 
