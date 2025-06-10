@@ -1,4 +1,4 @@
-%%%
+%%a
 title = "Parent-side authoritative DNS records for enhanced delegation"
 abbrev = "parent-side-auth-types"
 docName = "draft-peetterr-dnsop-parent-side-auth-types-02"
@@ -45,9 +45,10 @@ organization = "ISC"
 
 .# Abstract
 
-DNS RR types with numbers in the range 0xFA00-0xFDFF are now included in special treatment like DS RR type specified in [@!RFC4035].
+DNS RR types with numbers in the range 0xFA00-0xFDFF are now included in special treatment similar to DS RR type specified in [@!RFC4035].
 Authoritative servers, DNSSEC signers, and recursive resolvers need to extend the conditions for DS special handling to also include this range.
-This means: being authoritative on the parent side of a delegation; being signed by the parent; being provided along with delegations by the parent.
+This means: being authoritative on the parent side of a delegation; being signed by the parent; unlike DS, records from this range are not included
+in delegation responded by the parent, unless specified for a given type by some other document.
 DNSSEC validators also need to implement downgrade protection described in (#downgrade).
 
 {mainmatter}
@@ -71,14 +72,20 @@ The term "Parent-Side Types" refers to set of RR types which contains exactly:
 * Value 43 as defined for DS type by [@RFC4034, section 5],
 * The whole range reserved by this document in (#iana).
 
+The term "New Parent-Side Types" refers to set of RR types which contains exactly:
+
+* The whole range reserved by this document in (#iana).
+
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14 [@!RFC2119] [@RFC8174] when, and only when, they appear in all capitals, as shown here.
 
 # Summary
 
 A RR type range reservation in [#iana] is now open for allocation of future Parent-Side Types, but none such types are allocated by this document.
 
-Special processing for DS record type related to its inclusion in DNS messages, zone files, DNSSEC signing, etc. is extended to all Parent-Side Types.
-The only exception are rules which pertain to content of DS resource records, which are not applicable to other Parent-Side Types.
+Special processing for DS record type related to its inclusion in zone files, DNSSEC signing, DNSSEC validation, DNS resolution algorithm etc.
+is extended to all Parent-Side Types. The only exception are:
+  * Rules which pertain to content of DS resource records, which are not applicable to other Parent-Side Types.
+  * Parent-Side Types other than DS are not automatically included in delegation responses. Other specifications might specify special handling these new types, e.g. new types which create a delegation point without using a NS record.
 
 In short, authoritative servers serve the types from the parent side of a delegation and resolvers know to ask the parent side of a delegation.
 
@@ -88,8 +95,7 @@ Having these type numbers reserved with defined processing rules allows for futu
 
 'Implementation' is understood to mean both 'code changes' and 'operational changes' here.
 
-This specification extends special handling previously defined exclusively to DS RR type to apply to all Parent-Side Types.
-In short, implementations need to modify their hardcoded condition (if RRTYPE equals DS) to (if RRTYPE is Parent-Side Type) as defined in (#term).
+To simplify, implementations need to modify their hardcoded condition (if RRTYPE equals DS) to (if RRTYPE is Parent-Side Type) as defined in (#term), with exception of including the types in delegation responses, as detailed below.
 
 ## Authoritative servers, Signing software, and Recursive resolvers
 
@@ -97,16 +103,16 @@ Updates to existing specifications:
 
 * [@RFC4035, section 2.4]
   * All Parent-Side Types in a zone MUST be signed, and MUST NOT appear at a zone's apex.
-  * Unless specified otherwise by a future specification, only DS RR type defined in [@RFC4034, section 5] establish authentication chains between DNS zones.
+  * Unless specified otherwise by a future specification, only DS RR type defined in [@RFC4034, section 5] establishes authentication chain between DNS zones.
   * TTL of Parent-Side Types is NOT tied to NS TTL.
 
 * [@RFC4035, section 2.6]: All Parent-Side Types are allowed at the parent side of a zone cut, and NSEC RR type continues to be allowed as well.
 
-* [@RFC4035, section 3.1.4]: Fully applicable. When responding to a query that has the DO bit set, all Parent-Side Types or a relevant proof-of-nonexistence MUST be returned. In practice it is extremely unlikely that all Parent-Side Types would be present and thus the proof-of-nonexistence will be always present.
+* [@RFC4035, section 3.1.4]: Not applicable to New Parent-Side Types. Rules specified in this section continue to apply only to DS RR type.
 
-* [@RFC4035, section 3.1.4.1]: Special rules applicable. When responding to a query that has the DO bit set, all Parent-Side Types or a relevant proof-of-nonexistence MUST be returned. In practice it is extremely unlikely that all Parent-Side Types would be present and thus the proof-of-nonexistence will be always present.
+* [@RFC4035, section 3.1.4.1]: Special rules applicable to all Parent-Side Types.
 
-* [@RFC5155, section 7.2]: References to DS RR type are replaced by All Parent-Side Types.
+* [@RFC5155, section 7.2]: References to DS RR type are replaced by all Parent-Side Types.
 
 * [@RFC5155]: Opt-out feature of NSEC3 applies only if no Parent-Side Type is present at the delegation point.
 
@@ -122,19 +128,19 @@ How to deal with these places which were not updated by the RFC4033-4035? Close 
 * rfc1034#section-4.3.2 / rfc6672#section-3.2
 
 
-
 ## Validating resolver changes
 * [@RFC5155, section 6]
   * Security status of the child zone is determined by the presence or absence of DS RRSet, which is not changed by this document.
   * All Parent-Side Types require proof-of-nonexistence and thus NSEC3 Opt-out feature applies only if no Parent-Side Type is present at the delegation point.
 
-* [@RFC5155, section 8]: References to DS RR type are replaced by All Parent-Side Types.
+FIXME: following three sections need further refinement if we decide to add new types which create a delegation without NS
 
+* [@RFC5155, section 8]: References to DS RR type are replaced by Parent-Side Types.
 
-* [@RFC6840, section 4.1]: Reference to DS RR type is replaced by all Parent-Side Types.
+* [@RFC6840, section 4.1]: Reference to DS RR type is replaced by Parent-Side Types.
 
 * [@RFC6840, section 4.4]:
-  * While proving existence of any Parent-Side Type needs MUST follow rules for NSEC bitmap checks from this section to detect spoofed proofs from the child zone.
+  * While proving non-existence of any Parent-Side Type validation MUST follow rules from this section.
   * Only DS RR type is used for determining presence of a secure delegation.
 
 This specification defines changes to query processing in resolvers.
@@ -152,16 +158,14 @@ Without this secure signal an on-path adversary can remove Parent Side records a
 
 This specification defines changes to zone validation in zone validators.
 
-RR types from the new parent-side range in (#iana) must conform to the same signing rules as DS RR type. See [@RFC4035]
+New Parent-Side Types MUST conform to the same signing rules as DS RR type. See [@RFC4035]
 
 
 
 
 ## Stub resolver changes
 
-This specification defines no changes to query processing in stub resolvers.
-
-FIXME
+This specification defines no changes to query processing in stub resolvers because stub resolvers are not aware of zone cuts.
 
 
 ## Domain registry changes
