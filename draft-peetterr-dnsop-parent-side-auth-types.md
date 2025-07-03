@@ -141,7 +141,7 @@ FIXME: following three sections need further refinement if we decide to add new 
 
 * [@RFC6840, section 4.4]:
   * While proving non-existence of any Parent-Side Type validation MUST follow rules from this section.
-  * Only DS RR type is used for determining presence of a secure delegation.
+  * No change to secure delegation signal: Only DS RR type is used to determine if a delegation is secure.
 
 This specification defines changes to query processing in resolvers.
 
